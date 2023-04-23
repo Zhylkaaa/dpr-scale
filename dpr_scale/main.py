@@ -29,7 +29,10 @@ def main(cfg: MainConfig):
     datamodule = hydra.utils.instantiate(cfg.datamodule, transform=transform)
     checkpoint_callback = hydra.utils.instantiate(cfg.checkpoint_callback)
     lr_monitor = LearningRateMonitor(logging_interval='step')
-    trainer = Trainer(**cfg.trainer, callbacks=[checkpoint_callback, lr_monitor])
+    logging_callbacks = hydra.utils.instantiate(cfg.logging_callbacks)
+    if not isinstance(logging_callbacks, (list, tuple)):
+        logging_callbacks = [logging_callbacks]
+    trainer = Trainer(**cfg.trainer, callbacks=[checkpoint_callback, lr_monitor] + logging_callbacks)
 
     if cfg.test_only:
         ckpt_path = cfg.task.pretrained_checkpoint_path

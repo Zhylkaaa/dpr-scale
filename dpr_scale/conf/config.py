@@ -21,6 +21,7 @@ defaults = [
     {"trainer": "gpu_1_host"},
     # Trainer callbacks
     {"checkpoint_callback": "default"},
+    {'logging_callbacks': 'wandb'}
 ]
 
 
@@ -32,6 +33,7 @@ class MainConfig:
     trainer: Any = MISSING
     test_only: bool = False
     checkpoint_callback: Any = MISSING
+    logging_callbacks: Any = MISSING
 
 cs = ConfigStore.instance()
 
