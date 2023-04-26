@@ -1,11 +1,22 @@
 defaults:
   - config
-  - task: multivec
-  - task/model: citadel_model
+  - override task: multivec
+  - override task/model: citadel_model
 
 task:
-  shared_model: false
-  in_batch_eval: false
+  shared_model: True
+  in_batch_eval: True
+  cross_batch: False
+  in_batch: True
+  query_topk: 1
+  context_topk: 5
+  teacher_coef: 0
+  tau: 1
+  anneal_factor: 0
+  query_router_marg_load_loss_coef: 1e-2
+  context_router_marg_load_loss_coef: 1e-2
+  query_expert_load_loss_coef: 0
+  context_expert_load_loss_coef: 1e-4
   optim:
     lr: 2e-5
   warmup_steps: 100
@@ -17,10 +28,10 @@ datamodule:
   train_path: /net/tscratch/people/plgdmytro/mgr/data/train_poleval_czywiesz.jsonl
   val_path: /net/tscratch/people/plgdmytro/mgr/data/dev_poleval_czywiesz.jsonl
   test_path: /net/tscratch/people/plgdmytro/mgr/data/dev_poleval_czywiesz.jsonl
-  batch_size: 16
-  num_negative: 1
+  batch_size: 8
+  num_negative: 7
   num_val_negative: 1
-  num_test_negative: 50
+  num_test_negative: 10
   drop_last: false
   use_title: true
 
@@ -33,3 +44,6 @@ trainer:
   gradient_clip_val: 2.0
   precision: 16
   strategy: ddp_sharded
+
+logging_callbacks:
+  project: mgr_citadel
