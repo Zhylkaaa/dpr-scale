@@ -144,8 +144,10 @@ class MultiVecRetrieverTask(DenseRetrieverTask):
             if mask is not None:
                 scores[mask] = float("-inf")
         else:
+            with torch.no_grad():
+                v = context_repr[torch.argmax(torch.norm(context_repr, dim=1))]
             scores = torch.matmul(
-                query_repr, torch.transpose(context_repr, 0, 1)
+                    query_repr, torch.transpose(context_repr - v, 0, 1)
             )  # num_q x num_ctx
             if mask is not None:
                 # mask is size num_ctx
