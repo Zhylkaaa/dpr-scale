@@ -52,16 +52,16 @@ class CITADELEncoder(nn.Module):
         logits = outputs.logits[:, 1:, :]
         
         # router representation
-        full_router_repr = torch.log(1 + torch.relu(logits)) * attention_mask.unsqueeze(-1)
-        router_repr = torch.max(full_router_repr, dim=1).values
+        full_router_repr = torch.log(1 + torch.relu(logits)) * attention_mask.unsqueeze(-1)  # B X T X vocab
+        router_repr = torch.max(full_router_repr, dim=1).values  # B X vocab
         # routing, assign every token to top-k expert
-        expert_weights, expert_ids = torch.topk(full_router_repr, dim=2, k=topk) # B x T x topk
+        expert_weights, expert_ids = torch.topk(full_router_repr, dim=2, k=topk)  # B x T x topk
         # expert representation
         expert_repr = self.tok_project(hiddens) * attention_mask.unsqueeze(-1)
         
         # some training stat.
         router_mask = torch.zeros_like(full_router_repr)
-        router_mask.scatter_(dim=2, index=expert_ids, src=(expert_weights > 0.).to(expert_weights.dtype)) # B x T x E 
+        router_mask.scatter_(dim=2, index=expert_ids, src=(expert_weights > 0.).to(expert_weights.dtype))  # B x T x E
         # average number of experts per input 
         ret["avg_cond_num_experts"] = router_mask.sum(1).sum(1, keepdim=True).mean(0, keepdim=True)
         # average number of distinct experts per batch
