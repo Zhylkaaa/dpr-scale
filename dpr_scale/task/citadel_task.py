@@ -146,7 +146,12 @@ class MultiVecRetrieverTask(DenseRetrieverTask):
             if mask is not None:
                 scores[mask] = float("-inf")
         else:
-            with autocast(enabled=False):
+            if self.trainer.precision == 16:
+                with autocast(enabled=False):
+                    scores = torch.matmul(
+                        query_repr, torch.transpose(context_repr, 0, 1)
+                    )  # num_q x num_ctx
+            else:
                 scores = torch.matmul(
                     query_repr, torch.transpose(context_repr, 0, 1)
                 )  # num_q x num_ctx
