@@ -53,10 +53,11 @@ class CITADELEncoder(nn.Module):
         
         # router representation
         #full_router_repr = torch.log(1 + torch.relu(logits)) * attention_mask.unsqueeze(-1)  # B X T X vocab
-        full_router_repr = torch.sigmoid(logits) * attention_mask.unsqueeze(-1)
+        full_router_repr = logits * attention_mask.unsqueeze(-1)
         router_repr = torch.max(full_router_repr, dim=1).values  # B X vocab
         # routing, assign every token to top-k expert
         expert_weights, expert_ids = torch.topk(full_router_repr, dim=2, k=topk)  # B x T x topk
+        expert_weights = torch.sigmoid(expert_weights)
         # expert representation
         expert_repr = self.tok_project(hiddens) * attention_mask.unsqueeze(-1)
         
