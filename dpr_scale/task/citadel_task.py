@@ -270,7 +270,7 @@ class MultiVecRetrieverTask(DenseRetrieverTask):
                 router_loss += F.binary_cross_entropy(qr, context_repr["router_repr"][pos_id])
                 ctx_mask = mask.clone()
                 ctx_mask[pos_id] = False
-                router_loss += F.binary_cross_entropy(qr, context_repr["router_repr"][ctx_mask])
+                router_loss += F.binary_cross_entropy(qr.repeat(torch.sum(ctx_mask), 1), context_repr["router_repr"][ctx_mask])
         if self.teacher_coef > 0:
             pairwise_router_scores = self.sim_score(query_repr["router_repr"], 
                                                                 context_repr["router_repr"], 
