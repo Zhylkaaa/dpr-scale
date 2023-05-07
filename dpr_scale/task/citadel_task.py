@@ -5,6 +5,7 @@ import torch
 from pytorch_lightning.strategies import DDPShardedStrategy, DDPStrategy
 from dpr_scale.task.dpr_task import DenseRetrieverTask
 from torch.cuda.amp import autocast
+import torch.nn.functional as F
 
 
 class MultiVecRetrieverTask(DenseRetrieverTask):
@@ -138,10 +139,10 @@ class MultiVecRetrieverTask(DenseRetrieverTask):
     
     def sim_score(self, query_repr, context_repr, mask=None, pairwise=False):
         if pairwise:
-            multiplier = context_repr.shape[0] // query_repr.shape[0] # num_ctx
-            query_repr = query_repr.unsqueeze(1) # B x 1 x D
-            mask = mask.view(-1, multiplier) # B x num_ctx
-            context_repr = context_repr.view(-1, multiplier, context_repr.shape[1]) # B x num_ctx x D
+            multiplier = context_repr.shape[0] // query_repr.shape[0]  # num_ctx
+            query_repr = query_repr.unsqueeze(1)  # B x 1 x D
+            mask = mask.view(-1, multiplier)  # B x num_ctx
+            context_repr = context_repr.view(-1, multiplier, context_repr.shape[1])  # B x num_ctx x D
             scores = (query_repr * context_repr).sum(-1)
             if mask is not None:
                 scores[mask] = float("-inf")
@@ -257,10 +258,19 @@ class MultiVecRetrieverTask(DenseRetrieverTask):
     def router_loss(self, query_repr, context_repr, mask, pos_ctx_indices, teacher_scores):
         router_loss = 0.
         if 1 - self.teacher_coef > 0:
-            router_scores = self.sim_score(query_repr["router_repr"], context_repr["router_repr"], mask, pairwise=not self.in_batch)
-            if not self.in_batch:
-                pos_ctx_indices = torch.zeros(len(router_scores), dtype=torch.int64).to(router_scores.device)
-            router_loss = self.loss(router_scores, pos_ctx_indices)
+            #router_scores = self.sim_score(query_repr["router_repr"], context_repr["router_repr"], mask, pairwise=not self.in_batch)
+            #if not self.in_batch:
+            #    pos_ctx_indices = torch.zeros(len(router_scores), dtype=torch.int64).to(router_scores.device)
+            #router_loss = self.loss(router_scores, pos_ctx_indices)
+            multiplier = context_repr["router_repr"].shape[0] // query_repr["router_repr"].shape[0]  # num_ctx
+            mask = mask.view(-1, multiplier)  # B x num_ctx
+            router_loss = 0.
+
+            for qr, pos_id in zip(query_repr["router_repr"], pos_ctx_indices):
+                router_loss += F.binary_cross_entropy(qr, context_repr["router_repr"][pos_id])
+                ctx_mask = mask.clone()
+                ctx_mask[pos_id] = False
+                router_loss += F.binary_cross_entropy(qr, context_repr["router_repr"][ctx_mask])
         if self.teacher_coef > 0:
             pairwise_router_scores = self.sim_score(query_repr["router_repr"], 
                                                                 context_repr["router_repr"], 
