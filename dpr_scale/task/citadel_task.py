@@ -267,7 +267,7 @@ class MultiVecRetrieverTask(DenseRetrieverTask):
             router_loss = 0.
 
             for qr, pos_id in zip(query_repr["router_repr"], pos_ctx_indices):
-                router_loss += F.binary_cross_entropy(qr, context_repr["router_repr"][pos_id])
+                router_loss += F.binary_cross_entropy_with_logits(qr, context_repr["router_repr"][pos_id])
                 ctx_mask = mask.clone()
                 ctx_mask[pos_id] = False
                 router_loss += F.binary_cross_entropy_with_logits(qr.repeat(torch.sum(ctx_mask), 1),
